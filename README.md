@@ -23,5 +23,7 @@ pnpm exec supabase migration new <name>        # neue Migration
 pnpm exec supabase db push                     # Migrationen ans Remote-Projekt pushen
 ```
 
-## Mehr Kontext
-Siehe [AGENTS.md](./AGENTS.md) für Konventionen, Roadmap und Architektur-Notizen.
+## Doku
+- [docs/getting-started.md](./docs/getting-started.md) — detailliertes Setup (Voraussetzungen, Troubleshooting)
+- [docs/migrations-workflow.md](./docs/migrations-workflow.md) — wie wir Schema-Änderungen sicher nach Prod bringen
+- [AGENTS.md](./AGENTS.md) — Konventionen, Architektur-Invarianten, Direktiven für KI-Agents

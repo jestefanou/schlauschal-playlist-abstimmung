@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local plan / agent scratchpad (siehe Datei selbst)
+PROJECT_PLAN.md

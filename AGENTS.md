@@ -1,23 +1,19 @@
 # AGENTS.md
 
-Diese Datei orientiert Agents (Claude Code & Co.) und neue Mitwirkende.
+Direktiven für KI-Agents in diesem Repo. Detaillierte Erklärungen für menschliche Entwickler liegen in [docs/](./docs/) — diese Datei ist bewusst knapp, regelhaft, „check first / don't do that".
+
+> **Vor jeder Session:** [`PROJECT_PLAN.md`](./PROJECT_PLAN.md) lesen (gitignored, lokaler Scratchpad). Dort steht der aktuelle Status, offene Fragen, und Brücken-Notizen zwischen Sessions. Pflege die Datei aktiv — siehe Anleitung darin.
 
 ## Projekt
 Webapp für den Laufclub **Schlauchschal Running**. Mitglieder schlagen Songs vor und voten; die wöchentlichen Top-Songs werden automatisch zu Spotify-Playlists des Clubs hinzugefügt.
 
-## Stack
+## Stack (gepinnt — vor jedem framework-Touch verifizieren via `package.json`)
 - **Next.js 16** (App Router, TypeScript, Turbopack)
-- **Tailwind CSS 4**
-- **Supabase** (Postgres + Auth, lokale Migrationen via Supabase CLI)
-- **Spotify Web API** (Cron-Push aus Vercel oder Supabase Edge Function — wird in Schritt 6 entschieden)
+- **React 19**
+- **Tailwind CSS 4** (CSS-First Config)
+- **Supabase** (`@supabase/ssr` + `@supabase/supabase-js`)
+- **pnpm 11** (mit `allowBuilds`-Allowlist)
 - **Vercel** (Deployment)
-
-## Setup
-```bash
-pnpm install
-cp .env.local.example .env.local   # Supabase-Werte eintragen
-pnpm dev
-```
 
 ## Run Commands
 | Befehl | Zweck |
@@ -25,58 +21,80 @@ pnpm dev
 | `pnpm dev` | Lokaler Dev-Server (Turbopack) |
 | `pnpm build` | Production-Build |
 | `pnpm lint` | ESLint |
-| `pnpm exec supabase start` | Lokale Supabase-Instanz starten (Docker) |
-| `pnpm exec supabase db push` | Migrationen ans verknüpfte Remote-Projekt pushen |
+| `pnpm exec supabase start` | Lokales Supabase-Stack (Docker) |
+| `pnpm exec supabase db reset` | Lokale DB neu, alle Migrations frisch |
 | `pnpm exec supabase migration new <name>` | Neue Migration anlegen |
+| `pnpm exec supabase migration list` | Lokal vs. Remote-Stand prüfen |
 
-## Verzeichnisstruktur (Stand Schritt 1)
+Detaillierter Setup-Walkthrough → [docs/getting-started.md](./docs/getting-started.md).
+
+## Verzeichnisstruktur (Stand Schritt 2)
 ```
 src/
   app/                  # Next.js App Router
   lib/supabase/
     client.ts           # Browser-Client
     server.ts           # Server-Components-Client
-    middleware.ts       # Session-Refresh-Helper (von proxy.ts genutzt)
-  proxy.ts              # Next.js Proxy Entry (früher "middleware")
+    middleware.ts       # Session-Refresh-Helper
+  proxy.ts              # Next.js Proxy Entry (nicht "middleware"!)
 supabase/
-  config.toml           # Supabase-Projektkonfig
-  migrations/           # SQL-Migrationen (entsteht in Schritt 2)
+  config.toml
+  migrations/
+    20260517171501_tables.sql      # 9 Tabellen + Constraints + Indizes
+    20260517171502_policies.sql    # RLS + 20 Policies + is_admin()
+    20260517171503_functions.sql   # 5 Trigger
+docs/                    # Erklärungen für Menschen
+  getting-started.md
+  migrations-workflow.md
 ```
+
+## Datenmodell-Invarianten (im Schema durchgesetzt)
+- `profiles` 1:1 mit `auth.users` — Auto-Anlage via Trigger `handle_new_user`
+- Mails in `admin_bootstrap_emails` bekommen beim Signup `is_admin=true`
+- `is_admin`-Änderung nur durch existierende Admins (Trigger `prevent_unauthorized_admin_change`)
+- Stimmen-Budget pro `(user, cycle)` erzwungen (Trigger `check_vote_budget`)
+- Cycle-`winners_count` aus `playlists.default_winners_count` / `initial_winners_count` (Trigger `set_cycle_defaults`)
+- Master-Playlist (`is_master=true`, max 1 via Partial-Unique-Index) hat keine Cycles (Trigger `prevent_master_cycles`)
+- Songs global, dedupliziert über `spotify_track_id`; `song_nominations` ist die Cycle×Song-Zwischentabelle
 
 ## Konventionen
 - **TypeScript strict** — keine `any` ohne Begründung.
-- **Server-First**: Datenzugriff bevorzugt in Server Components / Server Actions.
-- **Auth-Sicherheit**: Im Server-Code immer `supabase.auth.getClaims()`, niemals `getSession()` — Letzteres ist client-only sicher.
-- **RLS überall an**: Jede Tabelle bekommt Row-Level-Security-Policies, kein direkter Service-Role-Zugriff aus dem Frontend.
-- **Migrationen sind die Wahrheit**: Schemaänderungen ausschließlich über `supabase migration new ...`, nie per Dashboard-Quick-Edit auf Prod.
+- **Server-First** — Datenzugriff bevorzugt in Server Components / Server Actions.
+- **Auth-Sicherheit** — Im Server-Code immer `supabase.auth.getClaims()`, niemals `getSession()`.
+- **RLS überall an** — Service-Role nie im Client-Code. Server-Code mit Service-Role nur in klar abgegrenzten Routen (Cron, Webhooks).
+- **Migrations sind die Wahrheit** — Schemaänderungen ausschließlich über `supabase migration new`, nie per Dashboard.
 
-## Geplante Roadmap
+## Migration-Regeln (nicht verhandelbar)
+1. **Niemals eine alte Migration editieren**, sobald sie in `main` ist. Korrekturen → neue Migration.
+2. **Lokal immer mit `supabase db reset` testen**, nicht mit `migration up` — sonst entgehen dir Konflikte beim frischen Setup.
+3. **Niemals direkt im Supabase-Dashboard auf Prod schrauben.** Wenn doch passiert: `supabase db pull` → committen.
+4. **Seed-Data** (Demo-User, Test-Songs) gehört in `supabase/seed.sql`, nicht in Migrations. **Echte Stammdaten** (z.B. `admin_bootstrap_emails`) gehören in Migrations.
+
+Hintergrund / volle Erklärung → [docs/migrations-workflow.md](./docs/migrations-workflow.md).
+
+## Roadmap
 1. Projekt-Setup ✅
-2. Supabase-Schema & Migrationen (Profile, Songs, Votes, Wochen, Playlist-Mapping, RLS)
-3. Auth (Magic Link + E-Mail-Allowlist)
-4. Song-Vorschläge (Spotify-Suche im Frontend)
+2. Supabase-Schema & Migrationen ✅
+3. Auth (Magic Link + Invite-Code)
+4. Song-Vorschläge (Spotify-Suche)
 5. Voting-UI
 6. Wöchentlicher Cron + Spotify-Push
 7. Spotify-OAuth für Owner-Account
 8. Polishing & Vercel-Deployment
 
-## Pnpm-Hinweis
-pnpm 11 erfordert für native Postinstall-Scripts eine explizite Allow-Liste in `pnpm-workspace.yaml` (`allowBuilds`). Aktuell erlaubt: `sharp`, `supabase`, `unrs-resolver`. Beim Hinzufügen weiterer Pakete mit Postinstall ggf. ergänzen.
+## Versions-Drift vermeiden (Hauptursache für KI-Bugs hier)
 
-## Hinweise für KI-Agents: Versions-Drift vermeiden
+LLMs schreiben Code oft so, wie eine ältere Major-Version es verlangt hätte. In diesem Repo gilt:
 
-LLMs neigen dazu, Code so zu schreiben, wie eine ältere Major-Version eines Frameworks es verlangt hätte (Trainingsdaten hinken hinterher). In diesem Repo gilt:
+1. **Vor framework-spezifischem Code: `package.json` lesen** und Major-Versionen feststellen.
+2. **Wenn eine Major-Version frisch wirkt** (≥ als das, was du intern „vertraut" kennst): nicht aus Erinnerung schreiben. WebFetch auf die offizielle Doku für genau diese Version.
+3. **Deprecation-Warnungen aus `pnpm build`/`pnpm dev` sind Arbeit, nicht Rauschen** — migrieren, bevor weitergebaut wird.
+4. **Bei Drift-Verdacht**: kurz rückversichern statt Best-Guess.
 
-**Bevor du framework-spezifischen Code schreibst:**
-1. **Lies `package.json`** und notiere die Major-Versionen der relevanten Pakete (Next, React, Tailwind, Supabase-SDKs).
-2. **Bei einer Major-Version ≥ deiner internen "vertrauten" Version**: verlasse dich **nicht** auf Erinnerung. Hol dir die aktuelle Doku via WebFetch (nextjs.org/docs, supabase.com/docs, tailwindcss.com/docs) bevor du eine Datei anlegst oder eine API verwendest.
-3. **Behandle Deprecation-Warnungen aus `pnpm build`/`pnpm dev` als Arbeit, nicht als Rauschen.** Wenn der Build sagt „X is deprecated, use Y": migrieren, bevor weitergebaut wird.
-4. **Bei Verdacht auf Drift** (Beispiel: ein Code-Snippet aus dem Gedächtnis fühlt sich „Standard" an, aber die Doku des aktuellen Majors zeigt etwas anderes): kurz beim User rückversichern, statt Best-Guess zu schreiben.
+### Bekannte Fallstricke in diesem Stack (Stand 2026)
+- **Next.js 16**: `middleware.ts` heißt jetzt `proxy.ts`, exportierte Funktion `proxy()`. Cookie-Handling in Server Components ist `await cookies()` (async).
+- **Tailwind 4**: CSS-First — kein `tailwind.config.js` im Default. Theme-Tokens via `@theme` in CSS. PostCSS-Plugin ist `@tailwindcss/postcss`.
+- **Supabase SSR**: Paket `@supabase/ssr` (nicht `@supabase/auth-helpers-nextjs`). Server: `auth.getClaims()` statt `auth.getSession()`. Keys: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` (nicht `ANON_KEY` / `SERVICE_ROLE_KEY`).
+- **pnpm 11**: `onlyBuiltDependencies` entfernt, ersetzt durch `allowBuilds: { name: true|false }` in `pnpm-workspace.yaml`.
 
-**Bekannte Fallstricke in diesem Stack (Stand 2026):**
-- **Next.js 16**: `middleware.ts` heißt jetzt `proxy.ts`, exportierte Funktion `proxy()` (nicht `middleware()`). Cookie-Handling in Server Components erfolgt über `await cookies()` (async, nicht sync).
-- **Tailwind 4**: CSS-First-Config — kein `tailwind.config.js` mehr im Default-Setup; Theme-Tokens werden in CSS via `@theme` deklariert. PostCSS-Plugin ist `@tailwindcss/postcss`, nicht mehr `tailwindcss` direkt.
-- **Supabase SSR**: Paket `@supabase/ssr` (nicht das alte `@supabase/auth-helpers-nextjs`). Im Server-Code `auth.getClaims()` statt `auth.getSession()`. Neue Key-Namen: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (statt `ANON_KEY`) und `SUPABASE_SECRET_KEY` (statt `SERVICE_ROLE_KEY`).
-- **pnpm 11**: `onlyBuiltDependencies` ist entfernt, ersetzt durch `allowBuilds: { name: true|false }` in `pnpm-workspace.yaml`.
-
-Diese Liste ergänzen, sobald ein neuer Fallstrick im Repo auftaucht.
+Diese Liste ergänzen, sobald ein neuer Fallstrick auftaucht.
