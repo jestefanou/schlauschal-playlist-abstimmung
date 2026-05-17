@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -56,53 +57,68 @@ export async function requestMagicLink(
         lastCode: code,
       };
     }
-    const { data: invite, error: inviteErr } = await admin
+
+    const nowIso = new Date().toISOString();
+    const { data: claimed, error: claimErr } = await admin
       .from("invite_codes")
-      .select("code, used_at, expires_at")
+      .update({ used_at: nowIso })
       .eq("code", code)
+      .is("used_at", null)
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .select("code")
       .maybeSingle();
-    if (inviteErr) {
-      console.error("invite_codes lookup failed", inviteErr);
+
+    if (claimErr) {
+      console.error("invite_codes claim failed", claimErr);
       return {
         status: "error",
         error: "Server-Fehler beim Code-Check.",
         lastCode: code,
       };
     }
-    if (!invite) {
-      return {
-        status: "error",
-        error: "Invite-Code unbekannt.",
-        lastCode: code,
-      };
-    }
-    if (invite.used_at) {
-      return {
-        status: "error",
-        error: "Invite-Code wurde bereits eingelöst.",
-        lastCode: code,
-      };
-    }
-    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+
+    if (!claimed) {
+      const { data: invite } = await admin
+        .from("invite_codes")
+        .select("used_at, expires_at")
+        .eq("code", code)
+        .maybeSingle();
+      if (!invite) {
+        return {
+          status: "error",
+          error: "Invite-Code unbekannt.",
+          lastCode: code,
+        };
+      }
+      if (invite.used_at) {
+        return {
+          status: "error",
+          error: "Invite-Code wurde bereits eingelöst.",
+          lastCode: code,
+        };
+      }
       return {
         status: "error",
         error: "Invite-Code ist abgelaufen.",
         lastCode: code,
       };
     }
-    validatedCode = invite.code;
+    validatedCode = code;
 
     const { error: createErr } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
     });
     if (createErr) {
-      console.error("createUser failed", createErr);
-      return {
-        status: "error",
-        error: "Account konnte nicht angelegt werden.",
-        lastCode: code,
-      };
+      const errCode = (createErr as { code?: string }).code;
+      if (errCode !== "email_exists" && errCode !== "user_already_exists") {
+        console.error("createUser failed", createErr);
+        return {
+          status: "error",
+          error: "Account konnte nicht angelegt werden.",
+          lastCode: code,
+        };
+      }
     }
   }
 
@@ -136,4 +152,10 @@ export async function requestMagicLink(
     status: "success",
     message: `Magic Link wurde an ${email} gesendet. Bitte E-Mail-Postfach prüfen.`,
   };
+}
+
+export async function signOut() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect("/login");
 }
