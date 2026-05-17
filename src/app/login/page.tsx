@@ -3,10 +3,10 @@ import { LoginForm } from "./LoginForm";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ code?: string; auth_error?: string }>;
+  searchParams: Promise<{ invite?: string; auth_error?: string }>;
 }) {
   const sp = await searchParams;
-  const initialCode = sp.code ?? "";
+  const initialCode = sp.invite ?? "";
   const authError = sp.auth_error ?? "";
 
   return (

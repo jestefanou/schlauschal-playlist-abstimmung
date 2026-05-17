@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestMagicLink, type LoginState } from "./actions";
+import { requestMagicLink, type LoginState } from "@/app/auth/actions";
 
 const initialState: LoginState = { status: "idle" };
 

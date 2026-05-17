@@ -32,14 +32,11 @@ export async function GET(request: NextRequest) {
     const admin = createAdminClient();
     const { error: updateErr } = await admin
       .from("invite_codes")
-      .update({
-        used_by: data.user.id,
-        used_at: new Date().toISOString(),
-      })
+      .update({ used_by: data.user.id })
       .eq("code", invite)
-      .is("used_at", null);
+      .is("used_by", null);
     if (updateErr) {
-      console.error("invite_codes mark-used failed", updateErr);
+      console.error("invite_codes set used_by failed", updateErr);
     }
   }
 
