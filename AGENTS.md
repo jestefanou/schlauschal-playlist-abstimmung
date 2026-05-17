@@ -58,6 +58,7 @@ docs/                    # Erklärungen für Menschen
 - Songs global, dedupliziert über `spotify_track_id`; `song_nominations` ist die Cycle×Song-Zwischentabelle
 
 ## Konventionen
+- **Nie in `main` arbeiten** — vor jeder inhaltlichen Änderung einen Feature-Branch anlegen (`git checkout -b feat/<scope>` oder `fix/<scope>`). `main` ist tabu für direkte Commits; auch kleine Edits laufen über Branch + PR/Merge. Wenn du beim Session-Start auf `main` bist und Arbeit ansteht: zuerst Branch erstellen, dann coden.
 - **TypeScript strict** — keine `any` ohne Begründung.
 - **Server-First** — Datenzugriff bevorzugt in Server Components / Server Actions.
 - **Auth-Sicherheit** — Im Server-Code immer `supabase.auth.getClaims()`, niemals `getSession()`.
@@ -95,6 +96,7 @@ LLMs schreiben Code oft so, wie eine ältere Major-Version es verlangt hätte. I
 - **Next.js 16**: `middleware.ts` heißt jetzt `proxy.ts`, exportierte Funktion `proxy()`. Cookie-Handling in Server Components ist `await cookies()` (async).
 - **Tailwind 4**: CSS-First — kein `tailwind.config.js` im Default. Theme-Tokens via `@theme` in CSS. PostCSS-Plugin ist `@tailwindcss/postcss`.
 - **Supabase SSR**: Paket `@supabase/ssr` (nicht `@supabase/auth-helpers-nextjs`). Server: `auth.getClaims()` statt `auth.getSession()`. Keys: `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SECRET_KEY` (nicht `ANON_KEY` / `SERVICE_ROLE_KEY`).
+- **Supabase config.toml**: `[auth.email] enable_signup = false` deaktiviert in supabase-cli 2.98 **das gesamte Email-Provider-Modul** (Fehler `email_provider_disabled` bei `signInWithOtp`), nicht nur Signup. Zum Schließen offener Signups nur den globalen `[auth] enable_signup = false` setzen und im Email-Block auf `true` lassen.
 - **pnpm 11**: `onlyBuiltDependencies` entfernt, ersetzt durch `allowBuilds: { name: true|false }` in `pnpm-workspace.yaml`.
 
 Diese Liste ergänzen, sobald ein neuer Fallstrick auftaucht.
