@@ -12,7 +12,7 @@ cp .env.local.example .env.local   # Werte aus dem Supabase-Dashboard eintragen
 pnpm dev
 ```
 
-Öffne http://localhost:3000.
+Öffne http://127.0.0.1:3000 (lokal bewusst `127.0.0.1`, nicht `localhost`).
 
 ## Supabase
 Das Repo ist mit einem Supabase-Projekt verknüpft. Lokale Migrationen liegen unter `supabase/migrations/`.
@@ -24,6 +24,8 @@ pnpm exec supabase db push                     # Migrationen ans Remote-Projekt 
 ```
 
 ## Doku
-- [docs/getting-started.md](./docs/getting-started.md) — detailliertes Setup (Voraussetzungen, Troubleshooting)
-- [docs/migrations-workflow.md](./docs/migrations-workflow.md) — wie wir Schema-Änderungen sicher nach Prod bringen
+Übersicht & Index: [docs/README.md](./docs/README.md). Highlights:
+- [docs/setup/getting-started.md](./docs/setup/getting-started.md) — detailliertes Setup (Voraussetzungen, Troubleshooting)
+- [docs/guides/testing.md](./docs/guides/testing.md) — Testen (statische Checks, lokales E2E, Migrations)
+- [docs/guides/migrations.md](./docs/guides/migrations.md) — wie wir Schema-Änderungen sicher nach Prod bringen
 - [AGENTS.md](./AGENTS.md) — Konventionen, Architektur-Invarianten, Direktiven für KI-Agents

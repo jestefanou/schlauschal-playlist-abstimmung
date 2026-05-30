@@ -1,6 +1,6 @@
 # Getting Started
 
-Detailliertes Setup für neue Mitwirkende. Wenn du nur schnell loslegen willst, reicht das, was im [README](../README.md) steht.
+Detailliertes Setup für neue Mitwirkende. Wenn du nur schnell loslegen willst, reicht das, was im [README](../../README.md) steht.
 
 ## Voraussetzungen
 
@@ -27,7 +27,7 @@ cd schlauschal-playlist-abstimmung
 pnpm install
 ```
 
-`pnpm install` führt die Postinstall-Scripts für `sharp`, `supabase` und `unrs-resolver` aus (per `allowBuilds` in [pnpm-workspace.yaml](../pnpm-workspace.yaml) zugelassen). Beim ersten Mal lädt das u.a. die Supabase-CLI als Go-Binary ins Projekt.
+`pnpm install` führt die Postinstall-Scripts für `sharp`, `supabase` und `unrs-resolver` aus (per `allowBuilds` in [pnpm-workspace.yaml](../../pnpm-workspace.yaml) zugelassen). Beim ersten Mal lädt das u.a. die Supabase-CLI als Go-Binary ins Projekt.
 
 ### 2. Supabase lokal hochfahren
 Docker Desktop starten, dann:
@@ -60,7 +60,7 @@ Die lokalen Keys sind stabil zwischen `supabase start`-Aufrufen, du musst die `.
 ```bash
 pnpm dev
 ```
-Öffne http://localhost:3000.
+Öffne http://127.0.0.1:3000 (lokal bewusst `127.0.0.1`, nicht `localhost` — siehe [auth-testing.md](../guides/auth-testing.md)).
 
 ## Hilfreiche Commands
 
@@ -75,7 +75,7 @@ pnpm dev
 | `pnpm exec supabase migration new <name>` | Neue Migration anlegen |
 | `pnpm exec supabase migration list` | Stand vergleichen (lokal vs. remote) |
 
-Mehr zum Migrations-Workflow → [migrations-workflow.md](./migrations-workflow.md).
+Mehr zum Migrations-Workflow → [guides/migrations.md](../guides/migrations.md).
 
 ## Troubleshooting
 
@@ -83,7 +83,7 @@ Mehr zum Migrations-Workflow → [migrations-workflow.md](./migrations-workflow.
 Docker Desktop hat zu wenig RAM zugewiesen. In den Docker-Einstellungen auf ≥ 4 GB stellen.
 
 **`pnpm install` meckert über `ignored builds`**
-Sollte nicht mehr passieren — die Allowlist steht in [pnpm-workspace.yaml](../pnpm-workspace.yaml). Falls doch: kontrollieren, ob ein neues Paket mit Postinstall reingekommen ist, das nicht in `allowBuilds:` steht. Hinzufügen und neu installieren.
+Sollte nicht mehr passieren — die Allowlist steht in [pnpm-workspace.yaml](../../pnpm-workspace.yaml). Falls doch: kontrollieren, ob ein neues Paket mit Postinstall reingekommen ist, das nicht in `allowBuilds:` steht. Hinzufügen und neu installieren.
 
 **Port 54321/54322/54323 bereits belegt**
 Du hast vermutlich noch ein anderes Supabase-Projekt laufen. `pnpm exec supabase stop --project-id <name>` für das andere Projekt.
@@ -91,4 +91,4 @@ Du hast vermutlich noch ein anderes Supabase-Projekt laufen. `pnpm exec supabase
 **Magic-Link-Mail kommt nicht an**
 Lokale Mails werden nicht versendet, sondern landen in [Mailpit](http://127.0.0.1:54324). Dort öffnest du sie und kopierst den Link.
 
-> Den kompletten Login-Flow Schritt für Schritt durchspielen → [testing-auth.md](./testing-auth.md).
+> Den kompletten Login-Flow Schritt für Schritt durchspielen → [guides/auth-testing.md](../guides/auth-testing.md).
