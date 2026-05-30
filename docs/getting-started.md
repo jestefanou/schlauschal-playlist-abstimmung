@@ -41,7 +41,7 @@ Wenn alles oben ist, gibt dir die CLI eine Tabelle mit URLs und Keys aus:
 | Studio (Dashboard) | http://127.0.0.1:54323 |
 | REST/Auth API | http://127.0.0.1:54321 |
 | Postgres direkt | postgresql://postgres:postgres@127.0.0.1:54322/postgres |
-| Mail-Inbucket (für Magic-Links) | http://127.0.0.1:54324 |
+| Mailpit (Mail-Testserver für Magic-Links) | http://127.0.0.1:54324 |
 
 Stoppen geht mit `pnpm exec supabase stop`. Komplett zurücksetzen (Migrations frisch durchlaufen lassen, alle Daten weg) mit `pnpm exec supabase db reset`.
 
@@ -89,4 +89,6 @@ Sollte nicht mehr passieren — die Allowlist steht in [pnpm-workspace.yaml](../
 Du hast vermutlich noch ein anderes Supabase-Projekt laufen. `pnpm exec supabase stop --project-id <name>` für das andere Projekt.
 
 **Magic-Link-Mail kommt nicht an**
-Lokale Mails werden nicht versendet, sondern landen im [Inbucket](http://127.0.0.1:54324). Dort öffnest du sie und kopierst den Link.
+Lokale Mails werden nicht versendet, sondern landen in [Mailpit](http://127.0.0.1:54324). Dort öffnest du sie und kopierst den Link.
+
+> Den kompletten Login-Flow Schritt für Schritt durchspielen → [testing-auth.md](./testing-auth.md).
