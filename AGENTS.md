@@ -26,7 +26,7 @@ Webapp für den Laufclub **Schlauchschal Running**. Mitglieder schlagen Songs vo
 | `pnpm exec supabase migration new <name>` | Neue Migration anlegen |
 | `pnpm exec supabase migration list` | Lokal vs. Remote-Stand prüfen |
 
-Detaillierter Setup-Walkthrough → [docs/getting-started.md](./docs/getting-started.md).
+Detaillierter Setup-Walkthrough → [docs/setup/getting-started.md](./docs/setup/getting-started.md). Doku-Index → [docs/README.md](./docs/README.md).
 
 ## Verzeichnisstruktur (Stand Schritt 2)
 ```
@@ -43,9 +43,10 @@ supabase/
     20260517171501_tables.sql      # 9 Tabellen + Constraints + Indizes
     20260517171502_policies.sql    # RLS + 20 Policies + is_admin()
     20260517171503_functions.sql   # 5 Trigger
-docs/                    # Erklärungen für Menschen
-  getting-started.md
-  migrations-workflow.md
+docs/                    # Doku für Menschen (Index: docs/README.md)
+  setup/                 # Erstaufsetzen (getting-started.md)
+  guides/                # Arbeitsabläufe (testing, auth-testing, migrations)
+  reports/               # ein Branch-Report pro gemergtem PR (+ TEMPLATE.md)
 ```
 
 ## Datenmodell-Invarianten (im Schema durchgesetzt)
@@ -58,7 +59,7 @@ docs/                    # Erklärungen für Menschen
 - Songs global, dedupliziert über `spotify_track_id`; `song_nominations` ist die Cycle×Song-Zwischentabelle
 
 ## Konventionen
-- **Nie in `main` arbeiten** — vor jeder inhaltlichen Änderung einen Feature-Branch anlegen (`git checkout -b feat/<scope>` oder `fix/<scope>`). `main` ist tabu für direkte Commits; auch kleine Edits laufen über Branch + PR/Merge. Wenn du beim Session-Start auf `main` bist und Arbeit ansteht: zuerst Branch erstellen, dann coden.
+- **Nie in `main` arbeiten** — vor jeder inhaltlichen Änderung einen Feature-Branch anlegen (`git switch -c feat/<scope>` oder `fix/<scope>`). `main` ist tabu für direkte Commits; auch kleine Edits laufen über Branch + PR/Merge. Wenn du beim Session-Start auf `main` bist und Arbeit ansteht: zuerst Branch erstellen, dann coden.
 - **TypeScript strict** — keine `any` ohne Begründung.
 - **Server-First** — Datenzugriff bevorzugt in Server Components / Server Actions.
 - **Auth-Sicherheit** — Im Server-Code immer `supabase.auth.getClaims()`, niemals `getSession()`.
@@ -71,7 +72,13 @@ docs/                    # Erklärungen für Menschen
 3. **Niemals direkt im Supabase-Dashboard auf Prod schrauben.** Wenn doch passiert: `supabase db pull` → committen.
 4. **Seed-Data** (Demo-User, Test-Songs) gehört in `supabase/seed.sql`, nicht in Migrations. **Echte Stammdaten** (z.B. `admin_bootstrap_emails`) gehören in Migrations.
 
-Hintergrund / volle Erklärung → [docs/migrations-workflow.md](./docs/migrations-workflow.md).
+Hintergrund / volle Erklärung → [docs/guides/migrations.md](./docs/guides/migrations.md).
+
+## Branch-Reports (vor jedem Merge)
+Vor jedem Merge nach `main` einen Branch-Report unter `docs/reports/` anlegen
+(`YYYY-MM-DD_<branch-slug>.md`, Vorlage [docs/reports/TEMPLATE.md](./docs/reports/TEMPLATE.md)).
+Hält fest, was und warum im Branch passiert ist — für Menschen und Agents. Ein PR
+ohne Report gilt als unvollständig. Konvention → [docs/reports/README.md](./docs/reports/README.md).
 
 ## Roadmap
 1. Projekt-Setup ✅

@@ -5,7 +5,7 @@ durchzuspielen — inklusive des Re-Login-Pfads, der über die RPC
 `user_id_by_email` läuft (Migration `…_auth_user_lookup_rpc`).
 
 Für den **Setup** des lokalen Stacks siehe zuerst
-[getting-started.md](./getting-started.md). Diese Datei setzt voraus, dass
+[getting-started.md](../setup/getting-started.md). Diese Datei setzt voraus, dass
 Supabase läuft und `.env.local` gefüllt ist.
 
 ## Wie der Flow funktioniert (Kurzfassung)
@@ -28,11 +28,11 @@ flowchart TD
     INV -->|nein| HOME
 ```
 
-- **Gating** ([src/lib/supabase/middleware.ts](../src/lib/supabase/middleware.ts)):
+- **Gating** ([src/lib/supabase/middleware.ts](../../src/lib/supabase/middleware.ts)):
   Nur `/login` und `/auth/callback` sind public. Alles andere ohne Session →
   Redirect auf `/login`. Mit Session auf `/login` → Redirect auf `/`.
 - **Bekannter vs. neuer User**: Die Server Action
-  ([src/app/auth/actions.ts](../src/app/auth/actions.ts)) fragt per RPC
+  ([src/app/auth/actions.ts](../../src/app/auth/actions.ts)) fragt per RPC
   `user_id_by_email`, ob die Adresse schon in `auth.users` existiert. Wenn ja:
   reiner Magic Link, **kein Code nötig**. Wenn nein: Invite-Code wird verlangt
   und atomar eingelöst.
@@ -44,7 +44,7 @@ flowchart TD
 
 Greif die App lokal **ausschließlich über `http://127.0.0.1:3000`** ab — nicht
 über `http://localhost:3000`. Supabase ist mit `site_url = http://127.0.0.1:3000`
-konfiguriert ([supabase/config.toml](../supabase/config.toml)), und GoTrue matcht
+konfiguriert ([supabase/config.toml](../../supabase/config.toml)), und GoTrue matcht
 Redirect-URLs unter dem `site_url`-Host großzügig (Pfad + Query erlaubt), die
 `localhost`-Einträge in `additional_redirect_urls` dagegen nur *exakt*. Ein
 Magic-Link-Redirect mit `?invite=…` über `localhost` wird deshalb verworfen und
