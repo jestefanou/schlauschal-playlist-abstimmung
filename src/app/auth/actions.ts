@@ -31,21 +31,19 @@ export async function requestMagicLink(
 
   const admin = createAdminClient();
 
-  const { data: usersPage, error: listErr } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
-  if (listErr) {
-    console.error("listUsers failed", listErr);
+  const { data: existingId, error: lookupErr } = await admin.rpc(
+    "user_id_by_email",
+    { p_email: email },
+  );
+  if (lookupErr) {
+    console.error("user_id_by_email failed", lookupErr);
     return {
       status: "error",
       error: "Server-Fehler. Bitte später erneut versuchen.",
       lastCode: code,
     };
   }
-  const existingUser = usersPage.users.find(
-    (u) => u.email?.toLowerCase() === email,
-  );
+  const existingUser = existingId ? { id: existingId as string } : null;
 
   let validatedCode: string | null = null;
   if (!existingUser) {
@@ -122,10 +120,14 @@ export async function requestMagicLink(
     }
   }
 
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("host") ?? "127.0.0.1:3000";
-  const callbackUrl = new URL("/auth/callback", `${proto}://${host}`);
+  let origin = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!origin) {
+    const h = await headers();
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    const host = h.get("host") ?? "127.0.0.1:3000";
+    origin = `${proto}://${host}`;
+  }
+  const callbackUrl = new URL("/auth/callback", origin);
   if (validatedCode) {
     callbackUrl.searchParams.set("invite", validatedCode);
   }

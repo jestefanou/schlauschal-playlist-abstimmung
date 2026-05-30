@@ -46,3 +46,6 @@ PROJECT_PLAN.md
 
 # Supabase Studio scratchpad (local SQL snippets)
 supabase/snippets/
+
+# Playwright MCP browser-automation artifacts (snapshots, console logs)
+.playwright-mcp/

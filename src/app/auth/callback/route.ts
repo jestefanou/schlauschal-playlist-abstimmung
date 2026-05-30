@@ -3,10 +3,21 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams, origin: requestOrigin } = new URL(request.url);
   const code = searchParams.get("code");
   const invite = searchParams.get("invite");
   const errorDescription = searchParams.get("error_description");
+
+  // Redirect-Origin bevorzugt aus NEXT_PUBLIC_SITE_URL (proxy-/host-robust,
+  // analog zur Login-Action), sonst aus dem Host-Header. request.url-origin
+  // nur als letzter Fallback — der ist im Next-Dev nicht zuverlässig der
+  // tatsächliche Host (z. B. immer localhost).
+  const host = request.headers.get("host");
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (host
+      ? `${request.headers.get("x-forwarded-proto") ?? "http"}://${host}`
+      : requestOrigin);
 
   if (errorDescription) {
     const url = new URL("/login", origin);
