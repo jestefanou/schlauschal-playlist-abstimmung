@@ -2,11 +2,16 @@
   "name": "schlauschal-playlist-abstimmung",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.1.2",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:db": "supabase test db",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
@@ -16,6 +21,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -24,6 +30,7 @@
     "eslint-config-next": "16.2.6",
     "supabase": "^2.98.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "4.1.7"
   }
 }

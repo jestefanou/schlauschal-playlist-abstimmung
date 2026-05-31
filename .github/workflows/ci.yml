@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Pflicht-Gate: läuft auf JEDEM PR/Push, ohne Docker (~schnell) ──
+  build-test:
+    name: Lint, Build & Unit-Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      # action-setup VOR setup-node (sonst findet cache:pnpm das pnpm nicht).
+      # pnpm-Version kommt aus dem packageManager-Feld in package.json.
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      # Der Build braucht die Supabase-Keys NICHT (alle Routes sind dynamisch via
+      # cookies() im Header) — die Dummies sind nur defensive Hygiene.
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: dummy-publishable-key
+          SUPABASE_SECRET_KEY: dummy-secret-key
+      - run: pnpm test:run
+
+  # ── Entscheidet, ob die schweren Jobs nötig sind (Pfad-Filter) ──
+  changes:
+    name: Pfad-Filter
+    runs-on: ubuntu-latest
+    outputs:
+      heavy: ${{ steps.filter.outputs.heavy }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            heavy:
+              - 'src/app/auth/**'
+              - 'supabase/**'
+              - 'e2e/**'
+              - '.github/workflows/**'
+
+  # ── DB/RLS (pgTAP): nur bei relevanten Pfaden ODER Label `full-ci` ──
+  db-tests:
+    name: DB/RLS (pgTAP)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      # Installiert auch die repo-gepinnte Supabase-CLI (devDep) -> CLI-Version = lokal.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec supabase start
+      - run: pnpm test:db
+      - if: always()
+        run: pnpm exec supabase stop
+
+  # ── E2E (Playwright Magic-Link): nur bei relevanten Pfaden ODER Label `full-ci` ──
+  e2e:
+    name: E2E (Playwright Magic-Link)
+    needs: changes
+    if: needs.changes.outputs.heavy == 'true' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec supabase start
+      # Lokale Stack-Keys auf die App-Env-Namen mappen (neue sb_*-Keys, nicht legacy).
+      - name: Supabase-Keys in $GITHUB_ENV mappen
+        run: |
+          pnpm exec supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.secret_key=SUPABASE_SECRET_KEY >> "$GITHUB_ENV"
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+      - if: always()
+        run: pnpm exec supabase stop
