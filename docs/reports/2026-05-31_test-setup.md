@@ -121,7 +121,7 @@ der Mailpit-API und folgt dem Link bis zur eingeloggten App.
 
 ## Offene Punkte / Follow-ups
 
-- **⚠️ Segfault in `public.user_id_by_email`** — Aufruf durch die Rolle `authenticated`
+- **Segfault in `public.user_id_by_email`** — Aufruf durch die Rolle `authenticated`
   (EXECUTE korrekt entzogen) **segfaultet den Postgres-Backend-Prozess (signal 11)** →
   instanzweiter Crash + Auto-Recovery. Reproduziert auf dem lokalen Supabase-Image.
   Repro:
