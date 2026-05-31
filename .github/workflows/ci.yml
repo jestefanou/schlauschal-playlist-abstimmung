@@ -88,13 +88,16 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec supabase start
-      # Lokale Stack-Keys auf die App-Env-Namen mappen (neue sb_*-Keys, nicht legacy).
-      - name: Supabase-Keys in $GITHUB_ENV mappen
+      # Lokale Stack-Keys als .env.local schreiben (neue sb_*-Keys, nicht legacy).
+      # WICHTIG: `supabase status -o env` liefert KEY="value" MIT Quotes. Als .env.local
+      # strippen sowohl Next (Build) als auch process.loadEnvFile (Test-Prozess) die
+      # Quotes — anders als $GITHUB_ENV, das sie literal übernähme (-> "Invalid supabaseUrl").
+      - name: .env.local aus dem lokalen Stack erzeugen
         run: |
           pnpm exec supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.publishable_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
-            --override-name auth.secret_key=SUPABASE_SECRET_KEY >> "$GITHUB_ENV"
+            --override-name auth.secret_key=SUPABASE_SECRET_KEY > .env.local
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - if: always()
@@ -105,3 +108,28 @@ jobs:
           retention-days: 7
       - if: always()
         run: pnpm exec supabase stop
+
+  # ── Aggregat-Gate: ein einziger Required-Check für die Branch-Protection, der
+  #    die gated Jobs respektiert (übersprungene Jobs blockieren den Merge nicht). ──
+  ci-success:
+    name: CI erfolgreich
+    if: always()
+    needs: [build-test, changes, db-tests, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Job-Ergebnisse prüfen
+        run: |
+          echo "build-test=${{ needs.build-test.result }} changes=${{ needs.changes.result }} db-tests=${{ needs.db-tests.result }} e2e=${{ needs.e2e.result }}"
+          # Pflicht-Jobs müssen erfolgreich sein.
+          if [ "${{ needs.build-test.result }}" != "success" ] || [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "Pflicht-Jobs (build-test/changes) nicht erfolgreich."
+            exit 1
+          fi
+          # Gated Jobs: success ODER skipped sind ok; failure/cancelled blockt.
+          for r in "${{ needs.db-tests.result }}" "${{ needs.e2e.result }}"; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "Ein gated Job (DB/E2E) ist fehlgeschlagen oder abgebrochen."
+              exit 1
+            fi
+          done
+          echo "Alle relevanten Jobs grün (übersprungene gated Jobs sind ok)."
