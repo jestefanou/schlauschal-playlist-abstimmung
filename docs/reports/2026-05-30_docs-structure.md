@@ -3,7 +3,7 @@ title: Doku-Struktur + Branch-Report-Konvention
 branch: chore/docs-structure
 base: main
 pr: "#5"
-status: open
+status: merged
 date: 2026-05-30
 authors: [jstefano]
 related:

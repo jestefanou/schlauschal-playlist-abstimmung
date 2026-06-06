@@ -3,7 +3,7 @@ title: Auth-Followups — RPC-User-Lookup, robuste Redirect-Origin, Test-Doku
 branch: chore/auth-followups
 base: main
 pr: "#4"
-status: open
+status: merged
 date: 2026-05-30
 authors: [jstefano]
 related:

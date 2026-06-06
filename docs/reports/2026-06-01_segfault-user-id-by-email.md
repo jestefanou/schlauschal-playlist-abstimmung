@@ -2,8 +2,8 @@
 title: "Segfault-Untersuchung: user_id_by_email crasht Postgres (supautils-Bug)"
 branch: investigate/segfault-user-id-by-email
 base: main
-pr: "—"
-status: open
+pr: "#8"
+status: merged
 date: 2026-06-01
 authors: [jstefano]
 related:

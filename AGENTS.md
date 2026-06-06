@@ -80,6 +80,16 @@ Vor jedem Merge nach `main` einen Branch-Report unter `docs/reports/` anlegen
 Hält fest, was und warum im Branch passiert ist — für Menschen und Agents. Ein PR
 ohne Report gilt als unvollständig. Konvention → [docs/reports/README.md](./docs/reports/README.md).
 
+**Frontmatter-Pflege (`pr` + `status`):**
+- **`pr` vor dem Commit füllen:** voraussichtliche PR-Nummer ermitteln (= höchste
+  vorhandene PR-/Issue-Nummer + 1, z. B. `gh pr list --state all --limit 1 --json number`)
+  und eintragen. Nie als `—`/leer committen. Best-effort — driftet die Nummer, fängt es
+  der Session-Start-Check (unten) ab.
+- **`status` nachziehen:** Lebenszyklus `draft` → `open` (PR offen) → `merged` (in `main`).
+  Da der Merge oft erst in einer Folge-Session passiert, gilt: **bei jedem Session-Start
+  prüfen**, ob jeder gemergte PR einen Report mit korrekter `pr`-Nummer und `status: merged`
+  hat — fehlende/falsche Werte recherchieren (`gh pr list --state all`) und nachtragen.
+
 ## Roadmap
 1. Projekt-Setup ✅
 2. Supabase-Schema & Migrationen ✅

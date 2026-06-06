@@ -4,6 +4,14 @@
   Nicht zutreffende Abschnitte ("Datenbank/Migrationen", "Gelöscht" …) dürfen
   entfallen — dann den Abschnitt ganz weglassen, keine leeren Überschriften.
   Konvention & Beispiel: docs/reports/README.md
+
+  Frontmatter pr/status:
+    pr     — VOR dem Commit füllen mit der voraussichtlichen PR-Nummer
+             (= höchste vorhandene PR-/Issue-Nummer + 1, via
+             `gh pr list --state all --limit 1 --json number`). Nie "—"/leer.
+    status — draft (Report entsteht) → open (PR offen) → merged (in main).
+             Nach dem Merge auf `merged` setzen; passiert das nicht sofort,
+             zieht der Session-Start-Check es nach (siehe docs/reports/README.md).
 -->
 ---
 title: <aussagekräftiger Titel>
