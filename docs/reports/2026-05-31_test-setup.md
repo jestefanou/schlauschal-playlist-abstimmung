@@ -3,7 +3,7 @@ title: Test-Framework (Vitest + pgTAP + Playwright) + CI
 branch: chore/test-setup
 base: main
 pr: "#6"
-status: open
+status: merged
 date: 2026-05-31
 authors: [jstefano]
 related:
