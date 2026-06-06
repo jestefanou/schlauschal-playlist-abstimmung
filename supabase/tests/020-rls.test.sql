@@ -35,7 +35,7 @@ insert into public.song_nominations (id, cycle_id, song_id, submitted_by)
 values ('44444444-4444-4444-4444-444444444441', '22222222-2222-2222-2222-222222222233',
         '33333333-3333-3333-3333-333333333334', current_setting('test.bob_id')::uuid);
 
-select plan(14);
+select plan(15);
 
 -- ── Meta ──
 select is(
@@ -66,8 +66,16 @@ select is(
 
 -- ── songs ──
 select lives_ok(
-  $$ insert into public.songs (spotify_track_id, title, artist) values ('spNew', 'Neu', 'B') $$,
-  'songs_insert_authenticated: authentifizierter User darf Songs anlegen'
+  $$ insert into public.songs (spotify_track_id, title, artist, added_by)
+     values ('spNew', 'Neu', 'B', (select auth.uid())) $$,
+  'songs_insert_authenticated: Song mit eigenem added_by ist erlaubt'
+);
+select throws_ok(
+  $$ insert into public.songs (spotify_track_id, title, artist, added_by)
+     values ('spForeign', 'Fremd', 'B', current_setting('test.bob_id')::uuid) $$,
+  '42501',
+  NULL,
+  'songs_insert_authenticated: Song mit fremdem added_by wird blockiert'
 );
 
 delete from public.songs where id = '33333333-3333-3333-3333-333333333331';

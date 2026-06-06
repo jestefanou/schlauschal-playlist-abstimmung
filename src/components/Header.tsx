@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/auth/actions";
 
@@ -12,8 +13,18 @@ export async function Header() {
 
   return (
     <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3 dark:border-zinc-800 dark:bg-black">
-      <div className="text-sm font-semibold tracking-tight">
-        Schlauchschal Playlist
+      <div className="flex items-center gap-4">
+        <Link href="/" className="text-sm font-semibold tracking-tight">
+          Schlauchschal Playlist
+        </Link>
+        <nav className="flex items-center gap-3 text-sm">
+          <Link
+            href="/songs"
+            className="text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
+          >
+            Songs
+          </Link>
+        </nav>
       </div>
       <form action={signOut} className="flex items-center gap-3">
         {email && (
