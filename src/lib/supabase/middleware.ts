@@ -1,7 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
+// /api/cron/* hat keine Browser-Session (Vercel Cron) und schützt sich selbst
+// über CRON_SECRET im Route Handler — vom Login-Redirect ausnehmen.
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/cron"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some(
