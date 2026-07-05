@@ -3,7 +3,7 @@ title: Report-Hygiene — PR-Nummer & Status im Frontmatter zuverlässig pflegen
 branch: chore/report-pr-status-hygiene
 base: main
 pr: "#9"
-status: open
+status: merged
 date: 2026-06-06
 authors: [jstefano]
 related:

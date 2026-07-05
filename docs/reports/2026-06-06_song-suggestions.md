@@ -3,7 +3,7 @@ title: "Schritt 4 — Song-Vorschläge (Spotify-Suche + Multi-Playlist-Nominieru
 branch: feat/song-suggestions
 base: main
 pr: "#10"
-status: open
+status: merged
 date: 2026-06-06
 authors: [jstefano]
 related:
