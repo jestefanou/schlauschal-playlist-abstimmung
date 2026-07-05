@@ -3,7 +3,7 @@ title: "Schritt 6a — Cycle-Rollover: Cron-Route, Gewinner-Ermittlung, Folge-Cy
 branch: feat/cycle-rollover
 base: main
 pr: "#14"
-status: draft
+status: open
 date: 2026-07-05
 authors: [jstefano]
 related:
