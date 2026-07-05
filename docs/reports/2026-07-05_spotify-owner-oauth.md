@@ -3,7 +3,7 @@ title: "Schritt 7 — Spotify-Owner-OAuth: Verbinden über Admin-Route, Refresh-
 branch: feat/spotify-owner-oauth
 base: main
 pr: "#16"
-status: draft
+status: open
 date: 2026-07-05
 authors: [jstefano]
 related:
