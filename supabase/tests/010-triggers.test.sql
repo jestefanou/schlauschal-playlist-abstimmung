@@ -1,4 +1,5 @@
--- pgTAP: Trigger-Funktionen aus 20260517171503_functions.sql.
+-- pgTAP: Trigger-Funktionen aus 20260517171503_functions.sql
+-- (set_cycle_defaults erweitert in 20260705154130_voting_phases.sql).
 -- Läuft als postgres (Superuser, RLS-bypass) — Trigger feuern rollenunabhängig.
 -- Der is_admin-Schutz hängt an auth.uid() (= JWT-Claim 'sub'), darum wird für die
 -- beiden Admin-Tests nur der Claim gesetzt, nicht die Rolle gewechselt: so bleibt
@@ -14,7 +15,7 @@ select tests.create_supabase_user('alice');
 select tests.create_supabase_user('boss', 'je.stefanou@gmail.com'); -- Bootstrap-Admin
 select tests.create_supabase_user('voter');
 
-select plan(10);
+select plan(12);
 
 -- ── 1. handle_new_user: Profil-Auto-Anlage + display_name + Admin-Bootstrap ──
 select is(
@@ -71,6 +72,22 @@ select is(
   (select winners_count from public.cycles where playlist_id = '10000000-0000-0000-0000-000000000001' and cycle_number = 3),
   10,
   'set_cycle_defaults: Initial-Cycle erbt initial_winners_count (10)'
+);
+
+-- ── set_cycle_defaults: voting_starts_at NULL wird aus nomination_days gefüllt ──
+select is(
+  (select voting_starts_at from public.cycles where playlist_id = '10000000-0000-0000-0000-000000000001' and cycle_number = 2),
+  (select starts_at + interval '4 days' from public.cycles where playlist_id = '10000000-0000-0000-0000-000000000001' and cycle_number = 2),
+  'set_cycle_defaults: voting_starts_at = starts_at + nomination_days (Default 4)'
+);
+
+-- Kurzer Cycle (2 Tage): voting_starts_at wird auf ends_at gedeckelt.
+insert into public.cycles (playlist_id, cycle_number, starts_at, ends_at, winners_count)
+values ('10000000-0000-0000-0000-000000000001', 4, now(), now() + interval '2 days', 3);
+select is(
+  (select voting_starts_at from public.cycles where playlist_id = '10000000-0000-0000-0000-000000000001' and cycle_number = 4),
+  (select ends_at from public.cycles where playlist_id = '10000000-0000-0000-0000-000000000001' and cycle_number = 4),
+  'set_cycle_defaults: voting_starts_at wird auf ends_at gedeckelt'
 );
 
 -- ── 5. prevent_master_cycles: Cycle auf Master-Playlist verboten ──

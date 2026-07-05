@@ -57,6 +57,7 @@ function makeBuilder(result: { data?: unknown; error: unknown }) {
     "update",
     "delete",
     "eq",
+    "gt",
     "in",
     "is",
     "or",
@@ -205,8 +206,12 @@ describe("nominateSong — Happy Path & Dedup", () => {
     );
     expect(songsSelect.eq).toHaveBeenCalledWith("spotify_track_id", "trk-1");
     expect(songsSelect.single).toHaveBeenCalled();
-    // Cycle-Lookup: nur offene, nur gewählte Playlists.
+    // Cycle-Lookup: nur offene in der Nominierungsphase, nur gewählte Playlists.
     expect(cyclesB.eq).toHaveBeenCalledWith("status", "open");
+    expect(cyclesB.gt).toHaveBeenCalledWith(
+      "voting_starts_at",
+      expect.any(String),
+    );
     expect(cyclesB.in).toHaveBeenCalledWith("playlist_id", ["p1", "p2"]);
     // Nominierungen: self + DO-NOTHING auf (cycle_id, song_id).
     expect(nomsB.upsert).toHaveBeenCalledWith(
@@ -254,7 +259,7 @@ describe("nominateSong — Happy Path & Dedup", () => {
     const res = await nominateSong(TRACK, ["p1", "p2"]);
     expect(res).toEqual({
       status: "error",
-      error: "Keine offenen Zyklen für die gewählten Playlists.",
+      error: "Für die gewählten Playlists läuft gerade keine Nominierungsphase.",
     });
   });
 });
@@ -296,7 +301,7 @@ describe("nominateSong — Fehlerpfade", () => {
 
 describe("withdrawNomination", () => {
   it("löscht die Nominierung, revalidiert und meldet success", async () => {
-    const builder = makeBuilder({ error: null });
+    const builder = makeBuilder({ data: [{ id: "nom-1" }], error: null });
     mocks.from.mockReturnValueOnce(builder);
 
     const res = await withdrawNomination("nom-1");
@@ -305,17 +310,32 @@ describe("withdrawNomination", () => {
     expect(mocks.from).toHaveBeenCalledWith("song_nominations");
     expect(builder.delete).toHaveBeenCalled();
     expect(builder.eq).toHaveBeenCalledWith("id", "nom-1");
+    expect(builder.select).toHaveBeenCalledWith("id");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/songs");
   });
 
   it("gibt error zurück und revalidiert NICHT, wenn das DELETE scheitert", async () => {
-    mocks.from.mockReturnValueOnce(makeBuilder({ error: { message: "boom" } }));
+    mocks.from.mockReturnValueOnce(
+      makeBuilder({ data: null, error: { message: "boom" } }),
+    );
 
     const res = await withdrawNomination("nom-1");
 
     expect(res).toEqual({
       status: "error",
       error: "Zurücknehmen fehlgeschlagen.",
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("meldet error, wenn RLS das DELETE auf 0 Zeilen filtert (Phase vorbei)", async () => {
+    mocks.from.mockReturnValueOnce(makeBuilder({ data: [], error: null }));
+
+    const res = await withdrawNomination("nom-1");
+
+    expect(res).toEqual({
+      status: "error",
+      error: "Zurücknehmen nicht mehr möglich (Abstimmung läuft bereits?).",
     });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });

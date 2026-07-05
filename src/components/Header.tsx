@@ -24,6 +24,12 @@ export async function Header() {
           >
             Songs
           </Link>
+          <Link
+            href="/vote"
+            className="text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
+          >
+            Abstimmen
+          </Link>
         </nav>
       </div>
       <form action={signOut} className="flex items-center gap-3">

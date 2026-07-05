@@ -44,7 +44,9 @@ export type NominateResult =
   | { status: "error"; error: string };
 
 // Schlägt einen Track für mehrere Playlists vor: Song in den globalen Pool
-// (dedupliziert), dann je offenem Cycle der gewählten Playlists eine Nomination.
+// (dedupliziert), dann je Cycle in der Nominierungsphase der gewählten Playlists
+// eine Nomination. Die Phase erzwingt auch RLS — der Filter hier liefert nur die
+// bessere Fehlermeldung.
 export async function nominateSong(
   track: SpotifyTrack,
   playlistIds: string[],
@@ -92,11 +94,13 @@ export async function nominateSong(
     return { status: "error", error: "Song konnte nicht gespeichert werden." };
   }
 
-  // 2. Offene Cycles der gewählten Playlists holen (aktiv, nicht Master).
+  // 2. Cycles der gewählten Playlists in der Nominierungsphase holen
+  //    (offen, aktiv, nicht Master, Abstimmungsstart noch in der Zukunft).
   const { data: cycles, error: cycleErr } = await supabase
     .from("cycles")
     .select("id, playlist_id, playlists!inner(is_active, is_master)")
     .eq("status", "open")
+    .gt("voting_starts_at", new Date().toISOString())
     .in("playlist_id", playlistIds);
   if (cycleErr) {
     console.error("cycle lookup failed", cycleErr);
@@ -115,7 +119,7 @@ export async function nominateSong(
   if (!targetCycles.length) {
     return {
       status: "error",
-      error: "Keine offenen Zyklen für die gewählten Playlists.",
+      error: "Für die gewählten Playlists läuft gerade keine Nominierungsphase.",
     };
   }
 
@@ -143,18 +147,28 @@ export type WithdrawResult =
   | { status: "success" }
   | { status: "error"; error: string };
 
-// Eigene Nominierung zurücknehmen. RLS erlaubt DELETE nur self (oder Admin).
+// Eigene Nominierung zurücknehmen. RLS erlaubt DELETE nur self (oder Admin) und
+// nur in der Nominierungsphase — danach ist die Kandidatenliste eingefroren.
 export async function withdrawNomination(
   nominationId: string,
 ): Promise<WithdrawResult> {
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("song_nominations")
     .delete()
-    .eq("id", nominationId);
+    .eq("id", nominationId)
+    .select("id");
   if (error) {
     console.error("withdrawNomination failed", error);
     return { status: "error", error: "Zurücknehmen fehlgeschlagen." };
+  }
+  // RLS filtert außerhalb der Nominierungsphase auf 0 Zeilen, ohne error —
+  // ohne diesen Check sähe der Klick wie ein Erfolg aus.
+  if (!deleted?.length) {
+    return {
+      status: "error",
+      error: "Zurücknehmen nicht mehr möglich (Abstimmung läuft bereits?).",
+    };
   }
   revalidatePath("/songs");
   return { status: "success" };
