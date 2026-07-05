@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { inNominationPhase } from "@/lib/cycle-phase";
+import { inNominationPhase, votingEnded } from "@/lib/cycle-phase";
 import { VoteButton } from "./VoteButton";
 
 type CycleRow = {
@@ -56,12 +56,15 @@ export default async function VotePage() {
     a.playlists.name.localeCompare(b.playlists.name, "de"),
   );
 
+  // Drei Zustände eines offenen Cycles: Nominierung, Abstimmung, oder schon
+  // vorbei (ends_at erreicht, Cron hat noch nicht geschlossen — Dead-Window).
   const votingCycles = cycles.filter(
-    (c) => !inNominationPhase(c.voting_starts_at),
+    (c) => !inNominationPhase(c.voting_starts_at) && !votingEnded(c.ends_at),
   );
   const nominationCycles = cycles.filter((c) =>
     inNominationPhase(c.voting_starts_at),
   );
+  const endedCycles = cycles.filter((c) => votingEnded(c.ends_at));
 
   // Nominierungen aller Abstimmungs-Cycles inkl. Votes in einem Query; Zählung
   // und "habe ich gewählt?" passieren in JS (Clubgröße, votes ist voll lesbar).
@@ -99,7 +102,9 @@ export default async function VotePage() {
         eigenes Budget.
       </p>
 
-      {votingCycles.length === 0 && nominationCycles.length === 0 && (
+      {votingCycles.length === 0 &&
+        nominationCycles.length === 0 &&
+        endedCycles.length === 0 && (
         <p className="mt-6 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
           Aktuell läuft keine Abstimmung. Ein Admin muss zuerst eine Playlist
           und einen Zyklus anlegen.
@@ -182,6 +187,27 @@ export default async function VotePage() {
           </section>
         );
       })}
+
+      {endedCycles.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-medium text-zinc-500">
+            Abstimmung beendet
+          </h2>
+          <ul className="mt-2 flex flex-col gap-2">
+            {endedCycles.map((cycle) => (
+              <li
+                key={cycle.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+              >
+                <span className="font-medium">{cycle.playlists.name}</span>
+                <span className="text-zinc-500">
+                  Die Gewinner werden ermittelt.
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {nominationCycles.length > 0 && (
         <section className="mt-8">
