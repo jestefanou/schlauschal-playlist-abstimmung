@@ -96,6 +96,30 @@ curl -X GET \
 
 Ergebnisse für `type=track` liegen unter `tracks.items`; `next`/`offset` dienen der Paginierung.
 
+## 6. Owner-OAuth verbinden (Schritt 7)
+
+Der wöchentliche Push (Schritt 6b) schreibt in die Club-Playlists — dafür braucht die App
+einen **User-Kontext** des Playlist-Besitzers (Authorization-Code-Flow), nicht nur das
+App-Token. Verbunden wird über die App selbst:
+
+1. **Redirect URI registrieren** (einmalig, App → Settings → Redirect URIs):
+   - lokal: `http://127.0.0.1:3000/api/spotify/callback` (Loopback-IP, nie `localhost`)
+   - Prod: `https://<domain>/api/spotify/callback`
+
+   Spotify verifiziert die URI bei jedem Authorize **und** beim Code-Exchange exakt;
+   eine nicht registrierte URI bricht mit `INVALID_CLIENT: Invalid redirect URI` ab.
+2. **Als Admin einloggen** → `/admin/spotify` → **Mit Spotify verbinden**. Im
+   Spotify-Dialog mit dem **Club-Account** (Besitzer der Playlists) zustimmen.
+   Angefragte Scopes: `playlist-modify-public playlist-modify-private`.
+3. Der Callback speichert den **Refresh-Token im Supabase Vault** (verschlüsselt;
+   Zugriff nur über die `service_role`-RPCs `set_/get_spotify_refresh_token`) und den
+   Verbindungs-Status in `spotify_connection` (Singleton-Tabelle, für Admins lesbar).
+   Es landet **kein Token in `.env`** — nach Token-Ausfall genügt „Neu verbinden".
+
+Hinweis Development-Modus: Die App darf bis zu 25 explizit eingetragene Nutzer
+authentifizieren — der eine Club-Account muss ggf. unter **User Management**
+eingetragen sein, falls er nicht der App-Owner ist.
+
 ## Stolperfallen
 
 - **`limit` bei `/v1/search` ist 0–10 (Default 5)** — nicht 1–50 wie bei vielen anderen

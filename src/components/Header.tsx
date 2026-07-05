@@ -11,6 +11,18 @@ export async function Header() {
 
   const email = typeof claims.email === "string" ? claims.email : null;
 
+  // Admin-Link nur für Admins anzeigen (die Ziel-Seiten prüfen selbst nochmal).
+  const userId = typeof claims.sub === "string" ? claims.sub : null;
+  let isAdmin = false;
+  if (userId) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", userId)
+      .maybeSingle();
+    isAdmin = Boolean(profile?.is_admin);
+  }
+
   return (
     <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-6 py-3 dark:border-zinc-800 dark:bg-black">
       <div className="flex items-center gap-4">
@@ -30,6 +42,14 @@ export async function Header() {
           >
             Abstimmen
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin/spotify"
+              className="text-zinc-600 transition-colors hover:text-black dark:text-zinc-400 dark:hover:text-white"
+            >
+              Admin
+            </Link>
+          )}
         </nav>
       </div>
       <form action={signOut} className="flex items-center gap-3">
